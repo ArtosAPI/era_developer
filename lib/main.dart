@@ -2,6 +2,7 @@ import 'package:era_developer_test/bloc/bloc/article_bloc.dart';
 import 'package:era_developer_test/utils/text_styles.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
@@ -11,23 +12,6 @@ void main() {
 
 class ForestVPNTestApp extends StatelessWidget {
   ForestVPNTestApp({Key? key}) : super(key: key);
-  final List<LaterNewsCard> laterNewsCards = [
-    LaterNewsCard(
-      imageUrl: 'https://i.ibb.co/Jk8FMMp/unsplash-Oqtaf-YT5k-Tw.jpg',
-      header: 'We are processing your request...',
-      date: '1 day ago',
-    ),
-    LaterNewsCard(
-      imageUrl: 'https://i.ibb.co/Jk8FMMp/unsplash-Oqtaf-YT5k-Tw.jpg',
-      header: 'We are processing your request...',
-      date: '1 day ago',
-    ),
-    LaterNewsCard(
-      imageUrl: 'https://i.ibb.co/Jk8FMMp/unsplash-Oqtaf-YT5k-Tw.jpg',
-      header: 'We are processing your request...',
-      date: '1 day ago',
-    ),
-  ];
 
   @override
   Widget build(BuildContext context) {
@@ -38,61 +22,150 @@ class ForestVPNTestApp extends StatelessWidget {
         create: (context) => ArticleBloc()..add(FetchArticles()),
         child: BlocBuilder<ArticleBloc, ArticleState>(
           builder: (context, state) {
-            return Scaffold(
-                appBar: AppBar(
-                  actions: [
-                    GestureDetector(
-                      child: const Text('Mark all read'),
-                    ),
-                    const SizedBox(
-                      width: 30,
-                    ),
-                  ],
-                ),
-                body: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 25),
-                  child: ListView(
-                    children: [
-                      const Text(
-                        'Featured',
-                        style: TextStyles.mainStyle,
+            if (state is ArticlesFetched) {
+              final List<FeaturedNewsCards> featuredNewsCards = List.generate(
+                  state.articles.length,
+                  (iterator) => FeaturedNewsCards(
+                        imageUrl: state.articles[iterator].imageUrl,
+                        header: state.articles[iterator].title,
+                        child: FeaturedNewsMoreInfo(
+                          imageUrl: state.articles[iterator].imageUrl,
+                          header: state.articles[iterator].title,
+                          description: state.articles[iterator].description!,
+                        ),
+                      ));
+
+              final List<LaterNewsCard> laterNewsCards = List.generate(
+                  state.articles.length,
+                  (iterator) => LaterNewsCard(
+                      imageUrl: state.articles[iterator].imageUrl,
+                      header: state.articles[iterator].title,
+                      date: '1 day ago'));
+
+              return Scaffold(
+                  appBar: AppBar(
+                    systemOverlayStyle: SystemUiOverlayStyle.dark,
+                    backgroundColor: Colors.transparent,
+                    surfaceTintColor: Colors.transparent,
+                    centerTitle: true,
+                    title: const Padding(
+                      padding: EdgeInsets.only(right: 20, bottom: 3.5),
+                      child: Text(
+                        'Notifications',
+                        style: TextStyle(fontSize: 18),
                       ),
-                      const SizedBox(
-                        height: 30,
+                    ),
+                    leading: GestureDetector(
+                      onTap: () {},
+                      child: const Padding(
+                        padding: EdgeInsets.only(left: 15),
+                        child: Image(
+                          image:
+                              AssetImage('assets/images/blackBackButton.png'),
+                          alignment: Alignment.centerLeft,
+                        ),
                       ),
-                      SizedBox(
-                        width: 358,
-                        height: 300,
-                        child: PageView(
-                          children: [
-                            GestureDetector(
-                                child: Container(
-                              color: Colors.redAccent,
-                            )),
-                            GestureDetector(
-                                child: Container(
-                              color: Colors.greenAccent,
-                            )),
-                          ],
+                    ),
+                    actions: [
+                      GestureDetector(
+                        onTap: () {
+                          state.readAllArticles();
+                          for (var article in state.articles) {
+                            print(article.read);
+                          }
+                        },
+                        child: const Text(
+                          'Mark all read',
+                          style: TextStyle(fontSize: 18),
                         ),
                       ),
                       const SizedBox(
-                        height: 30,
+                        width: 15,
                       ),
-                      const Text(
-                        'Latest news',
-                        style: TextStyles.mainStyle,
-                      ),
-                      const SizedBox(
-                        height: 30,
-                      ),
-                      Column(
-                        children: laterNewsCards,
-                      )
                     ],
                   ),
-                ));
+                  extendBodyBehindAppBar: true,
+                  body: Padding(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 25, vertical: 25),
+                    child: ListView(
+                      children: [
+                        const Text(
+                          'Featured',
+                          style: TextStyles.mainStyle,
+                        ),
+                        const SizedBox(
+                          height: 30,
+                        ),
+                        SizedBox(
+                          width: 358,
+                          height: 300,
+                          child: PageView(
+                            children: featuredNewsCards,
+                          ),
+                        ),
+                        const SizedBox(
+                          height: 30,
+                        ),
+                        const Text(
+                          'Latest news',
+                          style: TextStyles.mainStyle,
+                        ),
+                        const SizedBox(
+                          height: 30,
+                        ),
+                        Column(
+                          children: laterNewsCards,
+                        )
+                      ],
+                    ),
+                  ));
+            }
+            return const SizedBox(
+                width: 50, height: 50, child: CircularProgressIndicator());
           },
+        ),
+      ),
+    );
+  }
+}
+
+class FeaturedNewsCards extends StatelessWidget {
+  const FeaturedNewsCards({
+    super.key,
+    required this.imageUrl,
+    required this.header,
+    required this.child,
+  });
+
+  final String imageUrl, header;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: () {
+        Navigator.push(context, MaterialPageRoute(builder: (_) => child));
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(right: 5),
+        child: Container(
+          height: 300,
+          alignment: Alignment.bottomLeft,
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(12),
+              image: DecorationImage(
+                  image: NetworkImage(
+                    imageUrl,
+                  ),
+                  fit: BoxFit.cover)),
+          child: Padding(
+            padding: const EdgeInsets.only(left: 15, bottom: 25),
+            child: Text(
+              header,
+              style: TextStyles.imageHeader,
+            ),
+          ),
         ),
       ),
     );
@@ -147,6 +220,29 @@ class LaterNewsCard extends StatelessWidget {
             )
           ],
         ),
+      ),
+    );
+  }
+}
+
+class FeaturedNewsMoreInfo extends StatelessWidget {
+  const FeaturedNewsMoreInfo({
+    super.key,
+    required this.imageUrl,
+    required this.header,
+    required this.description,
+  });
+
+  final String imageUrl, header, description;
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      extendBodyBehindAppBar: true,
+      extendBody: true,
+      appBar: AppBar(
+        systemOverlayStyle: const SystemUiOverlayStyle(
+            systemNavigationBarColor: Colors.transparent),
       ),
     );
   }
