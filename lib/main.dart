@@ -220,7 +220,7 @@ class LaterNewsCard extends StatelessWidget {
                 BoxShadow(
                     blurRadius: 30, spreadRadius: -32, offset: Offset(8, 8))
               ],
-              color: read ? Colors.grey : Colors.white),
+              color: read ? Color.fromARGB(255, 224, 223, 223) : Colors.white),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
