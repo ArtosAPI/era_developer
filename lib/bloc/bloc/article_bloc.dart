@@ -10,6 +10,8 @@ class ArticleBloc extends Bloc<ArticleEvent, ArticleState> {
   ArticleBloc() : super(ArticleInitial()) {
     on<FetchArticles>((event, emit) {
       final articles = mockArticles;
+      //sort articles by its publication date
+      articles.sort((a, b) => a.publicationDate.compareTo(b.publicationDate));
 
       emit(ArticlesFetched(articles: articles));
     });

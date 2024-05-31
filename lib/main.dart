@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:era_developer_test/bloc/bloc/article_bloc.dart';
 import 'package:era_developer_test/utils/text_styles.dart';
 import 'package:flutter/cupertino.dart';
@@ -35,12 +37,23 @@ class ForestVPNTestApp extends StatelessWidget {
                         ),
                       ));
 
+              final articlePublicationDates = state.datesToString();
+
               final List<LaterNewsCard> laterNewsCards = List.generate(
                   state.articles.length,
                   (iterator) => LaterNewsCard(
-                      imageUrl: state.articles[iterator].imageUrl,
-                      header: state.articles[iterator].title,
-                      date: '1 day ago'));
+                        imageUrl: state.articles[iterator].imageUrl,
+                        header: state.articles[iterator].title,
+                        date: articlePublicationDates[iterator],
+                        read: state.articles[iterator].read ?? false,
+                        state: state,
+                        stateContext: context,
+                        child: FeaturedNewsMoreInfo(
+                          imageUrl: state.articles[iterator].imageUrl,
+                          header: state.articles[iterator].title,
+                          description: state.articles[iterator].description!,
+                        ),
+                      ));
 
               return Scaffold(
                   appBar: AppBar(
@@ -69,17 +82,17 @@ class ForestVPNTestApp extends StatelessWidget {
                     actions: [
                       GestureDetector(
                         onTap: () {
-                          state.readAllArticles();
-                          for (var article in state.articles) {
-                            print(article.read);
+                          for (int i = 0; i < state.articles.length; i++) {
+                            state.readArticle(i);
                           }
+                          context.read<ArticleBloc>().add(FetchArticles());
                         },
-                        child: const Text(
+                        child: Text(
                           'Mark all read',
                           style: TextStyle(fontSize: 18),
                         ),
                       ),
-                      const SizedBox(
+                      SizedBox(
                         width: 15,
                       ),
                     ],
@@ -114,9 +127,7 @@ class ForestVPNTestApp extends StatelessWidget {
                         const SizedBox(
                           height: 30,
                         ),
-                        Column(
-                          children: laterNewsCards,
-                        )
+                        Column(children: laterNewsCards)
                       ],
                     ),
                   ));
@@ -173,52 +184,70 @@ class FeaturedNewsCards extends StatelessWidget {
 }
 
 class LaterNewsCard extends StatelessWidget {
-  const LaterNewsCard(
+  LaterNewsCard(
       {super.key,
       required this.imageUrl,
       required this.header,
-      required this.date});
+      required this.date,
+      required this.child,
+      required this.read,
+      required this.state,
+      required this.stateContext});
   final String imageUrl, header, date;
+  final ArticlesFetched state;
+  final BuildContext stateContext;
+  bool read;
+  final Widget child;
 
   @override
   Widget build(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 25),
-      child: Container(
-        height: 103,
-        width: double.infinity,
-        decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(25),
-            boxShadow: const [
-              BoxShadow(blurRadius: 30, spreadRadius: -32, offset: Offset(8, 8))
-            ],
-            color: Colors.white),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ClipRRect(
-              borderRadius: BorderRadius.circular(15),
-              child: Image.network(
-                imageUrl,
-                fit: BoxFit.fill,
-                width: 90,
-                height: 60,
-              ),
-            ),
-            const SizedBox(
-              width: 15,
-            ),
-            Column(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                SizedBox(
-                    width: 190,
-                    child: Text(header, style: TextStyles.secondaryStyle)),
-                Text(date, style: TextStyles.tertiaryStyle)
+    return GestureDetector(
+      onTap: () {
+        state.readArticle(
+            state.articles.indexWhere((element) => element.title == header));
+        stateContext.read<ArticleBloc>().add(FetchArticles());
+
+        Navigator.push(context, MaterialPageRoute(builder: (_) => child));
+      },
+      child: Padding(
+        padding: const EdgeInsets.only(bottom: 25),
+        child: Container(
+          height: 103,
+          width: double.infinity,
+          decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(25),
+              boxShadow: const [
+                BoxShadow(
+                    blurRadius: 30, spreadRadius: -32, offset: Offset(8, 8))
               ],
-            )
-          ],
+              color: read ? Colors.grey : Colors.white),
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(15),
+                child: Image.network(
+                  imageUrl,
+                  fit: BoxFit.fill,
+                  width: 90,
+                  height: 60,
+                ),
+              ),
+              const SizedBox(
+                width: 15,
+              ),
+              Column(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(
+                      width: 190,
+                      child: Text(header, style: TextStyles.secondaryStyle)),
+                  Text(date, style: TextStyles.tertiaryStyle)
+                ],
+              )
+            ],
+          ),
         ),
       ),
     );
@@ -241,8 +270,50 @@ class FeaturedNewsMoreInfo extends StatelessWidget {
       extendBodyBehindAppBar: true,
       extendBody: true,
       appBar: AppBar(
-        systemOverlayStyle: const SystemUiOverlayStyle(
-            systemNavigationBarColor: Colors.transparent),
+        backgroundColor: Colors.transparent,
+        surfaceTintColor: Colors.transparent,
+        leading: GestureDetector(
+          onTap: () {
+            Navigator.pop(context);
+          },
+          child: const Padding(
+            padding: EdgeInsets.only(left: 15),
+            child: Image(
+              image: AssetImage('assets/images/whiteBackButton.png'),
+              alignment: Alignment.centerLeft,
+            ),
+          ),
+        ),
+      ),
+      body: ListView(
+        padding: EdgeInsets.all(0),
+        children: [
+          Container(
+            height: 495,
+            alignment: Alignment.bottomLeft,
+            decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(12),
+                image: DecorationImage(
+                    image: NetworkImage(
+                      imageUrl,
+                    ),
+                    fit: BoxFit.cover)),
+            child: Padding(
+              padding: const EdgeInsets.only(left: 40, bottom: 40),
+              child: Text(
+                header,
+                style: TextStyles.imageHeader,
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.all(21),
+            child: Text(
+              description,
+              style: TextStyles.secondaryStyle,
+            ),
+          )
+        ],
       ),
     );
   }
